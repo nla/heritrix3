@@ -115,6 +115,6 @@
 	</build>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<groovy.version>3.0.13</groovy.version>
+		<groovy.version>3.0.19</groovy.version>
 	</properties>
 </project>
