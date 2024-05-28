@@ -473,7 +473,7 @@ public class ExtractorHTML extends ContentExtractor implements InitializingBean 
                             .equalsIgnoreCase(IFRAME))) {
                         hop = Hop.NAVLINK;
                     } else {
-                        hop = Hop.EMBED; 
+                        hop = Hop.EMBED;
                     }
                     processEmbed(curi, value, context, hop);
                 }
