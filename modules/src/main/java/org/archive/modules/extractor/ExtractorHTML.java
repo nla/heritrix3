@@ -197,7 +197,7 @@ public class ExtractorHTML extends ContentExtractor implements InitializingBean 
     // matched by the above. attributes known to be URIs of various
     // sorts are matched specially
     static final String EACH_ATTRIBUTE_EXTRACTOR =
-      "(?is)\\s?((href|(?:cite))|(action)|(on\\w*)" // 1, 2, 3, 4 
+      "(?is)\\s?((href|(?:cite))|(action)|(on\\w*)" // 1, 2, 3, 4
      +"|((?:src)|(?:srcset)|(?:lowsrc)|(?:background)" // ...
      +"|(?:longdesc)|(?:usemap)|(?:profile)|(?:datasrc)" // ...
      +"|(?:data-src)|(?:data-srcset)|(?:data-original)|(?:data-original-set))" // 5
@@ -213,7 +213,7 @@ public class ExtractorHTML extends ContentExtractor implements InitializingBean 
     // 2: HREF, CITE - single URI relative to doc base, or occasionally javascript:
     // 3: ACTION - single URI relative to doc base, or occasionally javascript:
     // 4: ON[WHATEVER] - script handler
-    // 5: SRC,SRCSET,LOWSRC,BACKGROUND,LONGDESC,USEMAP,PROFILE, or 
+    // 5: SRC,SRCSET,LOWSRC,BACKGROUND,LONGDESC,USEMAP,PROFILE, or
     //    DATA-SRC, DATA-ORIGINAL single URI relative to doc base
     //    DATA-SRCSET, DATA-ORIGINAL-SET multi URI relative to doc base
     // 6: CODEBASE - a single URI relative to doc base, affecting other
@@ -538,6 +538,25 @@ public class ExtractorHTML extends ContentExtractor implements InitializingBean 
                     // remember 'rel' for end-analysis
                     linkRel = value;
                 }
+
+				// 2023 updates get img or source data attr
+				CharSequence context = elementContext(element, attr.group(13));
+				if (TextUtils.matches(
+						"data-(src|src-small|src-medium|srcset|original|original-set|lazy|lazy-srcset|full-src)", //
+						attr.group(13).toLowerCase())) {
+
+					// true, if we expect another HTML page instead of an image etc.
+					final Hop hop;
+
+					if (!framesAsEmbeds
+							&& (elementStr.equalsIgnoreCase(FRAME) || elementStr.equalsIgnoreCase(IFRAME))) {
+						hop = Hop.NAVLINK;
+					} else {
+						hop = Hop.EMBED;
+					}
+					processEmbed(curi, value, context, hop);
+				}
+
                 // any other attribute
                 // ignore for now
                 // could probe for path- or script-looking strings, but
@@ -737,11 +756,18 @@ public class ExtractorHTML extends ContentExtractor implements InitializingBean 
                 " from " + curi);
         }
 
-        if (context.equals(HTMLLinkContext.IMG_SRCSET.toString()) 
+		if (context.equals(HTMLLinkContext.IMG_SRCSET.toString())
+				|| context.equals(HTMLLinkContext.IMG_DATA_SRC.toString())
 				|| context.equals(HTMLLinkContext.SOURCE_SRCSET.toString())
 				|| context.equals(HTMLLinkContext.IMG_DATA_SRCSET.toString())
+				|| context.equals(HTMLLinkContext.SOURCE_DATA_SRCSET.toString())
+				|| context.equals(HTMLLinkContext.SOURCE_DATA_LAZY_SRCSET.toString())
+				|| context.equals(HTMLLinkContext.IMG_DATA_LAZY_SRCSET.toString())
+				|| context.equals(HTMLLinkContext.IMG_DATA_SRC_MEDIUM.toString())
+				|| context.equals(HTMLLinkContext.IMG_DATA_SRC_SMALL.toString())
 				|| context.equals(HTMLLinkContext.IMG_DATA_ORIGINAL_SET.toString())
-				|| context.equals(HTMLLinkContext.SOURCE_DATA_ORIGINAL_SET.toString())) {
+				|| context.equals(HTMLLinkContext.SOURCE_DATA_ORIGINAL_SET.toString())
+				|| context.equals(HTMLLinkContext.LINK_IMAGESRCSET.toString())) {
             logger.log(Level.FINE,"Found srcset listing: {0}", value);
 
             Matcher matcher = TextUtils.getMatcher("[\\s,]*(\\S*[^,\\s])(?:\\s(?:[^,(]+|\\([^)]*(?:\\)|$))*)?", value);
@@ -1052,7 +1078,7 @@ public class ExtractorHTML extends ContentExtractor implements InitializingBean 
         else if (content != null) {
             //look for likely urls in 'content' attribute
             try {
-                if (UriUtils.isVeryLikelyUri(content)) {
+                if (UriUtils.isVeryLikelyUri(UriUtils.speculativeFixup(content, curi.getUURI()))) {
                     int max = getExtractorParameters().getMaxOutlinks();
                     addRelativeToBase(curi, max, content, 
                             HTMLLinkContext.META, Hop.SPECULATIVE);                    

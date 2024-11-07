@@ -18,7 +18,7 @@ http://maven.apache.org/guides/mini/guide-m1-m2.html
 	<groupId>org.archive</groupId>
 	<!--This project is parent to all under 'projects' subdirectory-->
 	<artifactId>heritrix</artifactId>
-	<version>3.4.0-SNAPSHOT</version>
+	<version>3.4.1-SNAPSHOT</version>
 	<packaging>pom</packaging>
 	<name>Heritrix 3</name>
 	<description>
@@ -88,18 +88,7 @@ http://maven.apache.org/guides/mini/guide-m1-m2.html
 		</mailingList>
 	</mailingLists>
 
-	<pluginRepositories>
-		<pluginRepository>
-			<id>builds.archive.org,maven2</id>
-			<url>http://builds.archive.org/maven2</url>
-		</pluginRepository>
-	</pluginRepositories>
-
 	<repositories>
-		<repository>
-			<id>builds.archive.org,maven2</id>
-			<url>http://builds.archive.org/maven2</url>
-		</repository>
         <repository>
             <id>oracleReleases</id>
             <name>Oracle Released Java Packages</name>
@@ -382,6 +371,14 @@ http://maven.apache.org/guides/mini/guide-m1-m2.html
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>2.22.2</version>
+				<dependencies>
+					<dependency>
+						<groupId>org.apache.maven.surefire</groupId>
+						<!-- Allow older junit3 style tests to be discovered -->
+						<artifactId>surefire-junit4</artifactId>
+						<version>2.22.2</version>
+					</dependency>
+				</dependencies>
                 <configuration>
                     <argLine>-Xmx1g</argLine>
                     <systemPropertyVariables>
@@ -397,7 +394,7 @@ http://maven.apache.org/guides/mini/guide-m1-m2.html
 		<build.timestamp>${maven.build.timestamp}</build.timestamp>
 		<doclint>none</doclint>
 		<additionalparam>-Xdoclint:none</additionalparam>
-		<jetty.version>9.4.37.v20210219</jetty.version>
+		<jetty.version>9.4.56.v20240826</jetty.version>
 		<maven.compiler.target>1.8</maven.compiler.target>
 		<maven.compiler.source>1.8</maven.compiler.source>
 	</properties>
