@@ -18,7 +18,7 @@ http://maven.apache.org/guides/mini/guide-m1-m2.html
 	<groupId>org.archive</groupId>
 	<!--This project is parent to all under 'projects' subdirectory-->
 	<artifactId>heritrix</artifactId>
-	<version>3.5.1-SNAPSHOT</version>
+	<version>3.6.1-SNAPSHOT</version>
 	<packaging>pom</packaging>
 	<name>Heritrix 3</name>
 	<description>
@@ -30,10 +30,9 @@ http://maven.apache.org/guides/mini/guide-m1-m2.html
    
     <scm>
        <connection>scm:git:https://github.com/internetarchive/heritrix3.git</connection>
-       <developerConnection>scm:git:https://github.com/internetarchive/heritrix3.git</developerConnection>
+       <developerConnection>scm:git:git@github.com:internetarchive/heritrix3.git</developerConnection>
        <url>https://github.com/internetarchive/heritrix3</url>
-      <tag>3.5.0</tag>
-  </scm>            
+  </scm>
 
 	<licenses>
 		<license>
@@ -54,39 +53,6 @@ http://maven.apache.org/guides/mini/guide-m1-m2.html
 		<name>Internet Archive</name>
 		<url>http://www.archive.org/</url>
 	</organization>
-	<issueManagement>
-		<system>JIRA</system>
-		<url>http://webteam.archive.org/jira</url>
-	</issueManagement>
-	<ciManagement>
-		<system>jenkins</system>
-		<url>https://builds.archive.org/</url>
-	</ciManagement>
-	<mailingLists>
-		<mailingList>
-			<name>Crawler Discussion List</name>
-			<subscribe>
-				archive-crawler-subscribe@yahoogroups.com
-			</subscribe>
-			<unsubscribe>
-				archive-crawler-unsubscribe@yahoogroups.com
-			</unsubscribe>
-			<archive>
-				http://groups.yahoo.com/group/archive-crawler/
-			</archive>
-		</mailingList>
-		<mailingList>
-			<name>Crawler Commits</name>
-			<subscribe>
-				http://lists.sourceforge.net/lists/listinfo/archive-crawler-cvs
-			</subscribe>
-			<unsubscribe>
-				http://lists.sourceforge.net/lists/listinfo/archive-crawler-cvs
-			</unsubscribe>
-			<archive>http://sourceforge.net/mailarchive/forum.php?forum=archive-crawler-cvs
-			</archive>
-		</mailingList>
-	</mailingLists>
 
 	<repositories>
         <repository>
@@ -121,17 +87,17 @@ http://maven.apache.org/guides/mini/guide-m1-m2.html
 			<dependency>
 				<groupId>org.apache.httpcomponents</groupId>
 				<artifactId>httpclient</artifactId>
-				<version>4.5.13</version>
+				<version>4.5.14</version>
 			</dependency>
 			<dependency>
 				<groupId>org.apache.httpcomponents</groupId>
 				<artifactId>httpmime</artifactId>
-				<version>4.5.13</version>
+				<version>4.5.14</version>
 			</dependency>
 			<dependency>
 				<groupId>junit</groupId>
 				<artifactId>junit</artifactId>
-				<version>4.13.1</version>
+				<version>4.13.2</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
@@ -352,11 +318,21 @@ http://maven.apache.org/guides/mini/guide-m1-m2.html
 	<build>
 		<plugins>
 			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.13.0</version>
+				<configuration>
+					<!-- Retain method parameter names. This is required for some autowiring like AbstractFrontier.setScope()
+					https://github.com/spring-projects/spring-framework/wiki/Spring-Framework-6.1-Release-Notes#parameter-name-retention -->
+					<parameters>true</parameters>
+				</configuration>
+			</plugin>
+			<plugin>
 				<!-- install source jars to maven repo
 				http://maven.apache.org/plugins/maven-source-plugin/usage.html -->
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-source-plugin</artifactId>
-				<version>2.1.2</version>
+				<version>3.3.1</version>
 				<executions>
 					<execution>
 						<id>attach-sources</id>
@@ -395,8 +371,10 @@ http://maven.apache.org/guides/mini/guide-m1-m2.html
 		<doclint>none</doclint>
 		<additionalparam>-Xdoclint:none</additionalparam>
 		<jetty.version>9.4.56.v20240826</jetty.version>
-		<maven.compiler.target>1.8</maven.compiler.target>
-		<maven.compiler.source>1.8</maven.compiler.source>
+		<slf4j.version>2.0.16</slf4j.version>
+		<maven.compiler.target>17</maven.compiler.target>
+		<maven.compiler.source>17</maven.compiler.source>
+		<maven.compiler.release>17</maven.compiler.release>
 	</properties>
     <profiles>
         <profile>
@@ -416,7 +394,7 @@ http://maven.apache.org/guides/mini/guide-m1-m2.html
                    <plugin>
                      <groupId>org.sonatype.plugins</groupId>
                      <artifactId>nexus-staging-maven-plugin</artifactId>
-                     <version>1.6.7</version>
+                     <version>1.7.0</version>
                      <extensions>true</extensions>
                      <configuration>
                        <serverId>sonatype-nexus-staging</serverId>
@@ -427,7 +405,7 @@ http://maven.apache.org/guides/mini/guide-m1-m2.html
                    <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-release-plugin</artifactId>
-                    <version>2.5.3</version>
+                    <version>3.1.1</version>
                     <configuration>
                     <arguments>-Dmaven.test.skipTests=true -Dmaven.test.skip=true</arguments>                    
                       <tagNameFormat>@{project.version}</tagNameFormat>
@@ -440,7 +418,7 @@ http://maven.apache.org/guides/mini/guide-m1-m2.html
                     <plugin>
                      <groupId>org.apache.maven.plugins</groupId>
                      <artifactId>maven-source-plugin</artifactId>
-                     <version>2.2.1</version>
+                     <version>3.3.1</version>
                      <executions>
                        <execution>
                          <id>attach-sources</id>
@@ -453,7 +431,7 @@ http://maven.apache.org/guides/mini/guide-m1-m2.html
                    <plugin>
                      <groupId>org.apache.maven.plugins</groupId>
                      <artifactId>maven-javadoc-plugin</artifactId>
-                     <version>2.9.1</version>
+                     <version>3.10.1</version>
                      <executions>
                        <execution>
                          <id>attach-javadocs</id>
@@ -466,7 +444,7 @@ http://maven.apache.org/guides/mini/guide-m1-m2.html
                        <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
-                        <version>1.5</version>
+                        <version>3.2.7</version>
                         <executions>
                           <execution>
                             <id>sign-artifacts</id>
