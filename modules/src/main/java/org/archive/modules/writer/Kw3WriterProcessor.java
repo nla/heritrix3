@@ -29,8 +29,8 @@ import static org.archive.modules.writer.Kw3Constants.HEADER_MD5_KEY;
 import static org.archive.modules.writer.Kw3Constants.IP_ADDRESS_KEY;
 import static org.archive.modules.writer.Kw3Constants.STATUS_CODE_KEY;
 import static org.archive.modules.writer.Kw3Constants.URL_KEY;
-import it.unimi.dsi.fastutil.io.FastBufferedOutputStream;
 
+import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -280,7 +280,7 @@ public class Kw3WriterProcessor extends Processor {
       }
       md5 = stringToMD5(uri);
       File arcFile = new File(dir, md5 + "." + fetchTime);
-      return new FastBufferedOutputStream(new FileOutputStream(arcFile));       
+      return new BufferedOutputStream(new FileOutputStream(arcFile));
   }
   
   protected void writeArchiveInfoPart(String boundary, CrawlURI curi,
@@ -411,8 +411,7 @@ public class Kw3WriterProcessor extends Processor {
   private void chmod(File file, String permissions) {
       Process proc = null;
       try {
-          proc = Runtime.getRuntime().exec("chmod " + permissions + " " +
-                  file.getAbsolutePath());
+          proc = Runtime.getRuntime().exec(new String[]{"chmod", permissions, file.getAbsolutePath()});
           proc.waitFor();
           proc.getInputStream().close();
           proc.getOutputStream().close();

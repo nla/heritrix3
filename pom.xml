@@ -18,7 +18,7 @@ http://maven.apache.org/guides/mini/guide-m1-m2.html
 	<groupId>org.archive</groupId>
 	<!--This project is parent to all under 'projects' subdirectory-->
 	<artifactId>heritrix</artifactId>
-	<version>3.6.1-SNAPSHOT</version>
+	<version>3.10.3-SNAPSHOT</version>
 	<packaging>pom</packaging>
 	<name>Heritrix 3</name>
 	<description>
@@ -32,6 +32,7 @@ http://maven.apache.org/guides/mini/guide-m1-m2.html
        <connection>scm:git:https://github.com/internetarchive/heritrix3.git</connection>
        <developerConnection>scm:git:git@github.com:internetarchive/heritrix3.git</developerConnection>
        <url>https://github.com/internetarchive/heritrix3</url>
+    <tag>3.10.0</tag>
   </scm>
 
 	<licenses>
@@ -95,10 +96,38 @@ http://maven.apache.org/guides/mini/guide-m1-m2.html
 				<version>4.5.14</version>
 			</dependency>
 			<dependency>
-				<groupId>junit</groupId>
-				<artifactId>junit</artifactId>
-				<version>4.13.2</version>
+				<groupId>org.junit.jupiter</groupId>
+				<artifactId>junit-jupiter</artifactId>
+				<version>5.13.4</version>
 			</dependency>
+            <dependency>
+                <groupId>org.apache.groovy</groupId>
+                <artifactId>groovy-bom</artifactId>
+                <version>4.0.28</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-bom</artifactId>
+                <version>${jetty.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty.ee10</groupId>
+                <artifactId>jetty-ee10-bom</artifactId>
+                <version>${jetty.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-bom</artifactId>
+                <version>2.0.17</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
 		</dependencies>
 	</dependencyManagement>
 
@@ -346,21 +375,32 @@ http://maven.apache.org/guides/mini/guide-m1-m2.html
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.22.2</version>
-				<dependencies>
-					<dependency>
-						<groupId>org.apache.maven.surefire</groupId>
-						<!-- Allow older junit3 style tests to be discovered -->
-						<artifactId>surefire-junit4</artifactId>
-						<version>2.22.2</version>
-					</dependency>
-				</dependencies>
+                <version>3.5.3</version>
                 <configuration>
                     <argLine>-Xmx1g</argLine>
                     <systemPropertyVariables>
                         <testtmpdir>${project.build.directory}/heritrix-junit-tests</testtmpdir>
                         <heritrix.hostname>localhost</heritrix.hostname>
                     </systemPropertyVariables>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>versions-maven-plugin</artifactId>
+                <version>2.18.0</version>
+                <configuration>
+                    <ruleSet>
+                        <ignoreVersions>
+                            <ignoreVersion>
+                                <type>regex</type>
+                                <version>.*[.-](m|M|alpha|beta|rc|RC)-?\d+.*</version>
+                            </ignoreVersion>
+                            <ignoreVersion>
+                                <type>regex</type>
+                                <version>^200\d{5}.*</version>
+                            </ignoreVersion>
+                        </ignoreVersions>
+                    </ruleSet>
                 </configuration>
             </plugin>
 		</plugins>      
@@ -370,93 +410,80 @@ http://maven.apache.org/guides/mini/guide-m1-m2.html
 		<build.timestamp>${maven.build.timestamp}</build.timestamp>
 		<doclint>none</doclint>
 		<additionalparam>-Xdoclint:none</additionalparam>
-		<jetty.version>9.4.56.v20240826</jetty.version>
-		<slf4j.version>2.0.16</slf4j.version>
+		<jetty.version>12.0.25</jetty.version>
 		<maven.compiler.target>17</maven.compiler.target>
 		<maven.compiler.source>17</maven.compiler.source>
 		<maven.compiler.release>17</maven.compiler.release>
 	</properties>
     <profiles>
-        <profile>
-            <id>ossrh</id>
-            <distributionManagement>
-              <repository>
-                <id>sonatype-nexus-staging</id>
-                <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-              </repository>
-              <snapshotRepository>
-                <id>sonatype-nexus-snapshots</id>
-                <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-              </snapshotRepository>
-            </distributionManagement>
-            <build>
-                <plugins>
-                   <plugin>
-                     <groupId>org.sonatype.plugins</groupId>
-                     <artifactId>nexus-staging-maven-plugin</artifactId>
-                     <version>1.7.0</version>
-                     <extensions>true</extensions>
-                     <configuration>
-                       <serverId>sonatype-nexus-staging</serverId>
-                       <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-                       <autoReleaseAfterClose>true</autoReleaseAfterClose>
-                     </configuration>
-                   </plugin>
-                   <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-release-plugin</artifactId>
-                    <version>3.1.1</version>
-                    <configuration>
-                    <arguments>-Dmaven.test.skipTests=true -Dmaven.test.skip=true</arguments>                    
-                      <tagNameFormat>@{project.version}</tagNameFormat>
-                      <autoVersionSubmodules>true</autoVersionSubmodules>
-                      <useReleaseProfile>false</useReleaseProfile>
-                      <releaseProfiles>ossrh</releaseProfiles>
-                      <goals>deploy</goals>
-                    </configuration>
-                   </plugin>
-                    <plugin>
-                     <groupId>org.apache.maven.plugins</groupId>
-                     <artifactId>maven-source-plugin</artifactId>
-                     <version>3.3.1</version>
-                     <executions>
-                       <execution>
-                         <id>attach-sources</id>
-                         <goals>
-                           <goal>jar-no-fork</goal>
-                         </goals>
-                       </execution>
-                     </executions>
-                   </plugin>
-                   <plugin>
-                     <groupId>org.apache.maven.plugins</groupId>
-                     <artifactId>maven-javadoc-plugin</artifactId>
-                     <version>3.10.1</version>
-                     <executions>
-                       <execution>
-                         <id>attach-javadocs</id>
-                         <goals>
-                           <goal>jar</goal>
-                         </goals>
-                       </execution>
-                     </executions>
-                   </plugin>
-                       <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-gpg-plugin</artifactId>
-                        <version>3.2.7</version>
-                        <executions>
-                          <execution>
-                            <id>sign-artifacts</id>
-                            <phase>verify</phase>
-                            <goals>
-                              <goal>sign</goal>
-                            </goals>
-                          </execution>
-                        </executions>
-                      </plugin>
-                </plugins>
-            </build>
-        </profile>
+		<profile>
+			<id>release</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.sonatype.central</groupId>
+						<artifactId>central-publishing-maven-plugin</artifactId>
+						<version>0.7.0</version>
+						<extensions>true</extensions>
+						<configuration>
+							<publishingServerId>central</publishingServerId>
+						</configuration>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-release-plugin</artifactId>
+						<version>3.1.1</version>
+						<configuration>
+							<arguments>-Dmaven.test.skipTests=true -Dmaven.test.skip=true</arguments>
+							<tagNameFormat>@{project.version}</tagNameFormat>
+							<autoVersionSubmodules>true</autoVersionSubmodules>
+							<useReleaseProfile>false</useReleaseProfile>
+							<releaseProfiles>ossrh</releaseProfiles>
+							<goals>deploy</goals>
+						</configuration>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-source-plugin</artifactId>
+						<version>3.3.1</version>
+						<executions>
+							<execution>
+								<id>attach-sources</id>
+								<goals>
+									<goal>jar-no-fork</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-javadoc-plugin</artifactId>
+						<version>3.10.1</version>
+						<executions>
+							<execution>
+								<id>attach-javadocs</id>
+								<goals>
+									<goal>jar</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-gpg-plugin</artifactId>
+						<version>3.2.7</version>
+						<executions>
+							<execution>
+								<id>sign-artifacts</id>
+								<phase>verify</phase>
+								<goals>
+									<goal>sign</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
     </profiles>
 </project>

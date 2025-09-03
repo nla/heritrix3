@@ -56,7 +56,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import org.apache.commons.collections.ListUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.archive.crawler.event.CrawlStateEvent;
 import org.archive.crawler.framework.CrawlController.StopCompleteEvent;
 import org.archive.crawler.frontier.WorkQueue;
@@ -176,25 +176,25 @@ public class CrawlJob implements Comparable<CrawlJob>, ApplicationListener<Appli
                 isLaunchInfoPartial = true;
                 startPosition = jobLog.length()-(FileUtils.ONE_KB * 100);
             }
-            FileInputStream jobLogIn = new FileInputStream(jobLog);
-            jobLogIn.getChannel().position(startPosition);
-            BufferedReader jobLogReader = new BufferedReader(
-                    new InputStreamReader(jobLogIn));
-            String line;
-            // If we sliced into the file, make sure we skip to the next line:
-            // (See https://github.com/internetarchive/heritrix3/issues/239)
-            if (startPosition != 0) {
-                line = jobLogReader.readLine();
-            }
-            // Parse lines looking for launch details:
-            while ((line = jobLogReader.readLine()) != null) {
-                Matcher m = launchLine.matcher(line);
-                if (m.matches()) {
-                    launchCount++;
-                    lastLaunch = Instant.parse(m.group(1));
+            try (FileInputStream jobLogIn = new FileInputStream(jobLog)) {
+                jobLogIn.getChannel().position(startPosition);
+                BufferedReader jobLogReader = new BufferedReader(
+                        new InputStreamReader(jobLogIn));
+                String line;
+                // If we sliced into the file, make sure we skip to the next line:
+                // (See https://github.com/internetarchive/heritrix3/issues/239)
+                if (startPosition != 0) {
+                    line = jobLogReader.readLine();
+                }
+                // Parse lines looking for launch details:
+                while ((line = jobLogReader.readLine()) != null) {
+                    Matcher m = launchLine.matcher(line);
+                    if (m.matches()) {
+                        launchCount++;
+                        lastLaunch = Instant.parse(m.group(1));
+                    }
                 }
             }
-            jobLogReader.close();
         } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
@@ -251,8 +251,14 @@ public class CrawlJob implements Comparable<CrawlJob>, ApplicationListener<Appli
     public void checkXML() {
         // TODO: suppress check if XML unchanged? job.log when XML changed? 
 
-        Instant testTime = Instant.ofEpochMilli(getPrimaryConfig().lastModified());
-        Document doc = getDomDocument(getPrimaryConfig());
+        File primaryConfig = getPrimaryConfig();
+        Instant testTime = Instant.ofEpochMilli(primaryConfig.lastModified());
+        if (primaryConfig.toString().endsWith(".groovy")) {
+            // just assume Groovy configs are OK
+            xmlOkAt = testTime;
+            return;
+        }
+        Document doc = getDomDocument(primaryConfig);
         // TODO: check for other minimal requirements, like
         // presence of a few key components (CrawlController etc.)? 
         if(doc!=null) {

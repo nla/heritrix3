@@ -19,20 +19,21 @@
 
 package org.archive.modules.extractor;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.Predicate;
-import org.apache.commons.httpclient.URIException;
+import org.archive.url.URIException;
 import org.archive.modules.CrawlMetadata;
 import org.archive.modules.CrawlURI;
 import org.archive.net.UURI;
 import org.archive.net.UURIFactory;
 import org.archive.util.Recorder;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ExtractorHTMLTest extends StringExtractorTestBase {
 
@@ -145,6 +146,7 @@ public class ExtractorHTMLTest extends StringExtractorTestBase {
      * [HER-1128] ExtractorHTML fails to extract FRAME SRC link without
      * whitespace before SRC http://webteam.archive.org/jira/browse/HER-1128
      */
+    @Test
     public void testNoWhitespaceBeforeValidAttribute() throws URIException {
         expectSingleLink(
                 "http://expected.example.com/",
@@ -167,9 +169,8 @@ public class ExtractorHTMLTest extends StringExtractorTestBase {
                 .getInstance("http://www.example.com"));
         getExtractor().extract(puri, source);
         CrawlURI[] links = puri.getOutLinks().toArray(new CrawlURI[0]);
-        assertTrue("did not find single link",links.length==1);
-        assertTrue("expected link not found", 
-                links[0].getURI().equals(expected));
+        assertTrue(links.length==1, "did not find single link");
+        assertTrue(links[0].getURI().equals(expected), "expected link not found");
     }
     
     /**
@@ -179,6 +180,7 @@ public class ExtractorHTMLTest extends StringExtractorTestBase {
      * because it can cause problems/complaints 
      * http://webteam.archive.org/jira/browse/HER-1280
      */
+    @Test
     public void testOnlyExtractFormGets() throws URIException {
         CrawlURI puri = new CrawlURI(UURIFactory
                 .getInstance("http://www.example.com"));
@@ -189,12 +191,13 @@ public class ExtractorHTMLTest extends StringExtractorTestBase {
             "<form action=\"http://www.example.com/ok3\"> ";
         getExtractor().extract(puri, cs);
         // find exactly 3 (not the POST) action URIs
-        assertTrue("incorrect number of links found", puri.getOutLinks().size()==3);
+        assertEquals(3, puri.getOutLinks().size(), "incorrect number of links found");
     }
 
     /*
      * positive and negative tests for uris in meta tag's content attribute
      */
+    @Test
     public void testMetaContentURI() throws URIException {
         CrawlURI puri = new CrawlURI(UURIFactory
                 .getInstance("http://www.example.com"));
@@ -211,17 +214,16 @@ public class ExtractorHTMLTest extends StringExtractorTestBase {
         Arrays.sort(links);         
         String dest1 = "http://www.example.com/absolute.mp4";
         String dest2 = "http://www.example.com/relative.mp4";
-        
-        assertTrue("incorrect number of links found", puri.getOutLinks().size()==2);
-        assertEquals("expected uri in 'content' attribute of meta tag not found",dest1,
-                links[0].getURI());        
-        assertEquals("expected uri in 'content' attribute of meta tag not found",dest2,
-                links[1].getURI());
+
+        assertEquals(2, puri.getOutLinks().size(), "incorrect number of links found");
+        assertEquals(dest1, links[0].getURI(), "expected uri in 'content' attribute of meta tag not found");
+        assertEquals(dest2, links[1].getURI(), "expected uri in 'content' attribute of meta tag not found");
     }
     
     /**
      * Test detection, respect of meta robots nofollow directive
      */
+    @Test
     public void testMetaRobots() throws URIException {
         CrawlURI puri = new CrawlURI(UURIFactory
                 .getInstance("http://www.example.com"));
@@ -231,10 +233,9 @@ public class ExtractorHTMLTest extends StringExtractorTestBase {
             "<a href='blahblah'>blah</a> "+
             "blahblah";
         getExtractor().extract(puri, cs);
-        assertEquals("meta robots content not extracted","index,nofollow",
-                puri.getData().get(ExtractorHTML.A_META_ROBOTS));
+        assertEquals("index,nofollow", puri.getData().get(ExtractorHTML.A_META_ROBOTS), "meta robots content not extracted");
         CrawlURI[] links = puri.getOutLinks().toArray(new CrawlURI[0]);
-        assertTrue("link extracted despite meta robots",links.length==0);
+        assertEquals(0, links.length, "link extracted despite meta robots");
     }
     
     /**
@@ -245,6 +246,7 @@ public class ExtractorHTMLTest extends StringExtractorTestBase {
      * 
      * @throws URIException
      */
+    @Test
     public void testBadRelativeLinks() throws URIException {
         CrawlURI curi = new CrawlURI(UURIFactory
                 .getInstance("http://www.example.com"));
@@ -255,20 +257,18 @@ public class ExtractorHTMLTest extends StringExtractorTestBase {
         assertTrue(CollectionUtils.exists(curi.getOutLinks(), new Predicate() {
             public boolean evaluate(Object object) {
                 return ((CrawlURI) object)
-                        .getURI()
-                        .indexOf(
-                                "/example.html;jsessionid=deadbeef:deadbeed?parameter=this:value") >= 0;
+                        .getURI().contains("/example.html;jsessionid=deadbeef:deadbeed?parameter=this:value");
             }
         }));
 
         assertTrue(CollectionUtils.exists(curi.getOutLinks(), new Predicate() {
             public boolean evaluate(Object object) {
-                return ((CrawlURI) object).getURI().indexOf(
-                        "/example.html?parameter=this:value") >= 0;
+                return ((CrawlURI) object).getURI().contains("/example.html?parameter=this:value");
             }
         }));
     }
 
+    @Test
     public void testDataUrisAreIgnored() throws URIException {
         CrawlURI curi = new CrawlURI(UURIFactory.getInstance("http://www.example.com"));
         CharSequence cs = "<img src='data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=='>";
@@ -278,11 +278,8 @@ public class ExtractorHTMLTest extends StringExtractorTestBase {
     
     /**
      * Test that relative base href's are resolved correctly:
-     * 
-     * See 
-     * 
-     * @throws URIException
      */
+    @Test
     public void testRelativeBaseHrefRelativeLinks() throws URIException {
         CrawlURI curi = new CrawlURI(UURIFactory
                 .getInstance("https://www.schmid-gartenpflanzen.de/forum/index.php/mv/msg/7627/216142/0/"));
@@ -293,9 +290,7 @@ public class ExtractorHTMLTest extends StringExtractorTestBase {
         assertTrue(CollectionUtils.exists(curi.getOutLinks(), new Predicate() {
             public boolean evaluate(Object object) {
                 return ((CrawlURI) object)
-                        .getURI()
-                        .indexOf(
-                                ".de/forum/index.php/fa/89652/0/") >= 0;
+                        .getURI().contains(".de/forum/index.php/fa/89652/0/");
             }
         }));
     }
@@ -303,11 +298,8 @@ public class ExtractorHTMLTest extends StringExtractorTestBase {
     
     /**
      * Test that the first base href is used:
-     * 
-     * See 
-     * 
-     * @throws URIException
      */
+    @Test
     public void testFirstBaseHrefRelativeLinks() throws URIException {
         CrawlURI curi = new CrawlURI(UURIFactory
                 .getInstance("https://www.schmid-gartenpflanzen.de/forum/index.php/mv/msg/7627/216142/0/"));
@@ -318,18 +310,15 @@ public class ExtractorHTMLTest extends StringExtractorTestBase {
         assertTrue(CollectionUtils.exists(curi.getOutLinks(), new Predicate() {
             public boolean evaluate(Object object) {
                 return ((CrawlURI) object)
-                        .getURI()
-                        .indexOf(
-                                ".de/first/index.php/fa/89652/0/") >= 0;
+                        .getURI().contains(".de/first/index.php/fa/89652/0/");
             }
         }));
     }
 
     /**
      * Test that absolute base href's are resolved correctly:
-     * 
-     * @throws URIException
      */
+    @Test
     public void testAbsoluteBaseHrefRelativeLinks() throws URIException {
 
         CrawlURI curi = new CrawlURI(UURIFactory
@@ -341,9 +330,7 @@ public class ExtractorHTMLTest extends StringExtractorTestBase {
         assertTrue(CollectionUtils.exists(curi.getOutLinks(), new Predicate() {
             public boolean evaluate(Object object) {
                 return ((CrawlURI) object)
-                        .getURI()
-                        .indexOf(
-                                ".de/forum/index.php/fa/89652/0/") >= 0;
+                        .getURI().contains(".de/forum/index.php/fa/89652/0/");
             }
         }));
 
@@ -355,6 +342,7 @@ public class ExtractorHTMLTest extends StringExtractorTestBase {
      * 
      * [HER-1524] speculativeFixup in ExtractorJS should maintain URL scheme
      */
+    @Test
     public void testSpeculativeLinkExtraction() throws URIException {
         CrawlURI curi = new CrawlURI(UURIFactory
                 .getInstance("https://www.example.com"));
@@ -388,9 +376,8 @@ public class ExtractorHTMLTest extends StringExtractorTestBase {
      * 
      * [HER-1526] SCRIPT writing script TYPE common trigger of bogus links 
      *   (eg. 'text/javascript')
-     *   
-     * @throws URIException
      */
+    @Test
     public void testScriptTagWritingScriptType() throws URIException {
         CrawlURI curi = new CrawlURI(UURIFactory
                 .getInstance("http://www.example.com/en/fiche/dossier/322/"));
@@ -406,6 +393,7 @@ public class ExtractorHTMLTest extends StringExtractorTestBase {
         assertEquals(Collections.EMPTY_SET, curi.getOutLinks());
     }
 
+    @Test
     public void testOutLinksWithBaseHref() throws URIException {
         CrawlURI puri = new CrawlURI(UURIFactory
                 .getInstance("http://www.example.com/abc/index.html"));
@@ -419,16 +407,14 @@ public class ExtractorHTMLTest extends StringExtractorTestBase {
         String dest1 = "http://www.example.com/def/another1.html";
         String dest2 = "http://www.example.com/ghi/another2.html";
         // ensure outlink from base href
-        assertEquals("outlink1 from base href",dest1,
-                links[1].getURI());
-        assertEquals("outlink2 from base href",dest2,
-                links[2].getURI());
+        assertEquals(dest1, links[1].getURI(), "outlink1 from base href");
+        assertEquals(dest2, links[2].getURI(), "outlink2 from base href");
     }
-    
+
     protected Predicate destinationContainsPredicate(final String fragment) {
         return new Predicate() {
             public boolean evaluate(Object object) {
-                return ((CrawlURI) object).getURI().indexOf(fragment) >= 0;
+                return ((CrawlURI) object).getURI().contains(fragment);
             }
         };
     }
@@ -443,8 +429,8 @@ public class ExtractorHTMLTest extends StringExtractorTestBase {
     
     /**
      * HER-1728 
-     * @throws URIException 
      */
+    @Test
     public void testFlashvarsParamValue() throws URIException {
         CrawlURI curi = new CrawlURI(UURIFactory.getInstance("http://www.example.com/"));
         CharSequence cs = 
@@ -457,14 +443,14 @@ public class ExtractorHTMLTest extends StringExtractorTestBase {
             "</object> ";
         getExtractor().extract(curi, cs);
         String expected = "http://www.example.com/ParamZoomifySlideshowViewer.xml";
-        assertTrue("outlinks should contain: "+expected,
-                CollectionUtils.exists(curi.getOutLinks(),destinationsIsPredicate(expected)));
+        assertTrue(CollectionUtils.exists(curi.getOutLinks(), destinationsIsPredicate(expected)),
+                "outlinks should contain: " + expected);
     }
     
     /**
      * HER-1728 
-     * @throws URIException 
      */
+    @Test
     public void testFlashvarsEmbedAttribute() throws URIException {
         CrawlURI curi = new CrawlURI(UURIFactory.getInstance("http://www.example.com/"));
         CharSequence cs = 
@@ -477,14 +463,14 @@ public class ExtractorHTMLTest extends StringExtractorTestBase {
             "</object> ";
         getExtractor().extract(curi, cs);
         String expected = "http://www.example.com/EmbedZoomifySlideshowViewer.xml";
-        assertTrue("outlinks should contain: "+expected,
-                CollectionUtils.exists(curi.getOutLinks(),destinationsIsPredicate(expected)));
+        assertTrue(CollectionUtils.exists(curi.getOutLinks(),destinationsIsPredicate(expected)),
+                "outlinks should contain: "+expected);
     }
     
     /**
      * HER-1998 
-     * @throws URIException 
      */
+    @Test
     public  void testConditionalComment1() throws URIException {
         CrawlURI curi = new CrawlURI(UURIFactory.getInstance("http://www.example.com/"));
     
@@ -507,13 +493,12 @@ public class ExtractorHTMLTest extends StringExtractorTestBase {
         String dest1 = "http://www.example.com/foo.gif";
         String dest2 = "http://www.example.com/foo.js";
 
-        assertEquals("outlink1 from conditional comment img src",dest1,
-                links[0].getURI());
-        assertEquals("outlink2 from conditional comment script src",dest2,
-                links[1].getURI());
+        assertEquals(dest1, links[0].getURI(), "outlink1 from conditional comment img src");
+        assertEquals(dest2, links[1].getURI(), "outlink2 from conditional comment script src");
         
     }
 
+    @Test
     public void testImgSrcSetAttribute() throws URIException {
         CrawlURI curi = new CrawlURI(UURIFactory.getInstance("http://www.example.com/"));
 
@@ -535,11 +520,11 @@ public class ExtractorHTMLTest extends StringExtractorTestBase {
                 "http://www.example.com/images/foo3.jpg" };
 
         for (int i = 0; i < links.length; i++) {
-            assertEquals("outlink from img", dest[i], links[i].getURI());
+            assertEquals(dest[i], links[i].getURI(), "outlink from img");
         }
-
     }
 
+    @Test
     public void testSourceSrcSetAttribute() throws URIException {
         CrawlURI curi = new CrawlURI(UURIFactory.getInstance("http://www.example.com/"));
 
@@ -564,11 +549,12 @@ public class ExtractorHTMLTest extends StringExtractorTestBase {
         };
 
         for (int i = 0; i < links.length; i++) {
-            assertEquals("outlink from picture", dest[i], links[i].getURI());
+            assertEquals(dest[i], links[i].getURI(), "outlink from picture");
         }
 
     }
 
+    @Test
     public void testDataAttributes20Minutes() throws URIException {
         CrawlURI curi_src = new CrawlURI(UURIFactory.getInstance("https://www.20minutes.fr/"));
 
@@ -604,7 +590,8 @@ public class ExtractorHTMLTest extends StringExtractorTestBase {
         genericCrawl(curi_srcset_one, cs_srcset_one, dest_srcset_one);
 
     }
-    
+
+    @Test
     public void testDataAttributesTelerama() throws URIException {
         CrawlURI curi = new CrawlURI(UURIFactory.getInstance("https://www.telerama.fr/"));
 
@@ -618,7 +605,8 @@ public class ExtractorHTMLTest extends StringExtractorTestBase {
         genericCrawl(curi, cs, dest);
         
     }
-    
+
+    @Test
     public void testDataAttributesNouvelObs() throws URIException {
         CrawlURI curi = new CrawlURI(UURIFactory.getInstance("https://www.telerama.fr/"));
 
@@ -632,7 +620,8 @@ public class ExtractorHTMLTest extends StringExtractorTestBase {
         genericCrawl(curi, cs, dest);
         
     }
-    
+
+    @Test
     public void testDataAttributesEuronews() throws URIException {
         CrawlURI curi = new CrawlURI(UURIFactory.getInstance("https://www.euronews.com/"));
 
@@ -665,7 +654,8 @@ public class ExtractorHTMLTest extends StringExtractorTestBase {
         genericCrawl(curi, cs, dest);
         
     }  
-    
+
+    @Test
     public void testDataAttributesLeMonde() throws URIException {
         CrawlURI curi = new CrawlURI(UURIFactory.getInstance("https://www.telerama.fr/"));
 
@@ -691,6 +681,7 @@ public class ExtractorHTMLTest extends StringExtractorTestBase {
         
     }
 
+    @Test
     public void testLinkRel() throws URIException {
         CrawlURI curi = new CrawlURI(UURIFactory.getInstance("https://www.example.org/"));
 
@@ -723,6 +714,33 @@ public class ExtractorHTMLTest extends StringExtractorTestBase {
         assertEquals(expectedLinks, actualLinks);
     }
 
+    @Test
+    public void testDisobeyRelNofollow() throws URIException {
+        String html = "<a href=/normal><a href=/nofollow rel=nofollow><a href=/both><a href=/both rel=nofollow>";
+        CrawlURI curi = new CrawlURI(UURIFactory.getInstance("https://www.example.org/"));
+        getExtractor().setObeyRelNofollow(false);
+        getExtractor().extract(curi, html);
+        Set<String> links = curi.getOutLinks().stream().map(CrawlURI::getURI).collect(Collectors.toSet());
+        assertEquals(Set.of("https://www.example.org/both",
+                "https://www.example.org/normal",
+                "https://www.example.org/nofollow"), links);
+    }
+
+    @Test
+    public void testRelNofollow() throws URIException {
+        String html = "<a href=/normal></a><a href=/nofollow rel=nofollow></a><a href=/both></a>" +
+                      "<a href=/both rel=nofollow></a>" +
+                      "<a href=/multi1 rel='noopener nofollow'></a>" +
+                      "<a href=/multi2 rel=\"nofollow nopener\"></a>" +
+                      "<a href=/multi3 rel='noopener nofollow noentry'></a>";
+        CrawlURI curi = new CrawlURI(UURIFactory.getInstance("https://www.example.org/"));
+        getExtractor().setObeyRelNofollow(true);
+        getExtractor().extract(curi, html);
+        Set<String> links = curi.getOutLinks().stream().map(CrawlURI::getURI).collect(Collectors.toSet());
+        assertEquals(Set.of("https://www.example.org/both",
+                "https://www.example.org/normal"), links);
+    }
+
     private void genericCrawl(CrawlURI curi, CharSequence cs,String[] dest){
         getExtractor().extract(curi, cs);
 
@@ -730,7 +748,7 @@ public class ExtractorHTMLTest extends StringExtractorTestBase {
         Arrays.sort(links);
 
         for (int i = 0; i < links.length; i++) {
-            assertEquals("outlink from picture", dest[i], links[i].getURI());
+            assertEquals(dest[i], links[i].getURI(), "outlink from picture");
         }
     }
     

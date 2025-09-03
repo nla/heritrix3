@@ -18,23 +18,14 @@
  */
 package org.archive.io;
 
-import it.unimi.dsi.fastutil.io.FastBufferedOutputStream;
-
-import java.io.Closeable;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.FilenameFilter;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
+import java.io.*;
 import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPOutputStream;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.archive.checkpointing.Checkpoint;
 import org.archive.util.ArchiveUtils;
 import org.archive.util.FileUtils;
@@ -98,7 +89,7 @@ public class CrawlerJournal implements Closeable {
     protected Writer initialize(final File f) throws FileNotFoundException, IOException {
         FileUtils.moveAsideIfExists(f);
         return new OutputStreamWriter(new GZIPOutputStream(
-            new FastBufferedOutputStream(new FileOutputStream(f),32*1024)));
+            new BufferedOutputStream(new FileOutputStream(f),32*1024)));
     }
 
     /**
